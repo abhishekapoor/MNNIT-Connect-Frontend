@@ -46,7 +46,7 @@ const LandingPage = ({ onLoginClick, onSignUpClick }) => {
 
                         <h1 className="text-5xl font-bold text-gray-900 leading-tight">
                             Your Campus,<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r frompro-red-700 to-red-900">
+                            <span className="text-4xl font-bold bg-gradient-to-r from-red-700 to-red-900 text-transparent bg-clip-text">
                                 Connected.
                             </span>
                         </h1>
@@ -106,7 +106,7 @@ const LandingPage = ({ onLoginClick, onSignUpClick }) => {
                     <div className="relative">
                         <div className="relative rounded-2xl overflow-hidden shadow-2xl">
                             <img
-                                src="/mnnit2.jpg"
+                                src="/mnnit2.jpeg"
                                 alt="MNNIT Allahabad Campus"
                                 className="w-full h-auto rounded-lg"
                             />
