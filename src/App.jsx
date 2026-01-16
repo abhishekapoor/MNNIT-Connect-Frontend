@@ -1,52 +1,57 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import LandingPage from './LandingPage';
 import LoginPage from './LoginPage';
 import SignUpPage from './SignUpPage';
-import StudentDashboard from './pages/StudentDashboard';
-import { dummyUsers } from './data/dummyData';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
- import Navbar from './components/Navbar';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('login'); // 'login' or 'signup'
-
-  const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
+  const [currentView, setCurrentView] = useState('landing'); 
+  // Options: 'landing', 'login', 'signup', 'dashboard'
   
-    useEffect(() => {
-      // Check if user is logged in
-      const token = localStorage.getItem('token');
-      const userData = localStorage.getItem('user');
-      
-      if (token && userData) {
-        setUser(JSON.parse(userData));
-      } else {
-        console.log("Working");
-        // FOR DEMO: Auto-login as student
-        // Remove this in production!
-        const demoUser = dummyUsers.student;
-        setUser(demoUser);
-        console.log(demoUser)
-        // localStorage.setItem('user', JSON.stringify(demoUser));
-        // localStorage.setItem('token', 'demo_token_123');
-      }
-      setLoading(false);
-    }, []);
-  
+  const [userRole, setUserRole] = useState('student'); 
+  // 'student' or 'admin'
 
   return (
-      <Router>
-     <div className="min-h-screen bg-gray-50">
-        <Navbar user={user} />
-        <div className="container mx-auto px-4 py-8">
-           <StudentDashboard user={user} />
-      {/* {currentPage === 'login' ? (
-        <LoginPage onSignUpClick={() => setCurrentPage('signup')} />
-      ) : (
-        <SignUpPage onSignInClick={() => setCurrentPage('login')} />
-      )} */}
+    <div>
+      {currentView === 'landing' && (
+        <LandingPage 
+          onLoginClick={() => setCurrentView('login')}
+          onSignUpClick={() => setCurrentView('signup')}
+        />
+      )}
+      
+      {currentView === 'login' && (
+        <LoginPage 
+          onSignUpClick={() => setCurrentView('signup')}
+          onSuccess={(role) => {
+            setUserRole(role);
+            setCurrentView('dashboard');
+          }}
+        />
+      )}
+      
+      {currentView === 'signup' && (
+        <SignUpPage 
+          onSignInClick={() => setCurrentView('login')}
+          onSuccess={() => setCurrentView('login')}
+        />
+      )}
+
+      {/* MainDashboard will be added next */}
+      {currentView === 'dashboard' && (
+        <div className="min-h-screen flex items-center justify-center bg-gray-100">
+          <div className="text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Dashboard Coming Soon!</h1>
+            <p className="text-gray-600 mb-6">Main dashboard is being built...</p>
+            <button
+              onClick={() => setCurrentView('landing')}
+              className="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      )}
     </div>
-    </div>
-    </Router>
   );
 }
 

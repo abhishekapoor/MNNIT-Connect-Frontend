@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Mail, Lock } from 'lucide-react';
 import bgImage from './assets/mnnit.jpg';
 
-const MNNITLoginPage = ({ onSignUpClick }) => {
+const MNNITLoginPage = ({ onSignUpClick, onSuccess }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 

@@ -3,7 +3,7 @@ import { Mail, Lock, User, BookOpen, GraduationCap, Calendar } from 'lucide-reac
 import bgImage from './assets/mnnit.jpg';
 
 
-const MNNITSignUpPage = ({ onSignInClick }) => {
+const MNNITSignUpPage = ({ onSignInClick, onSuccess }) =>  {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
