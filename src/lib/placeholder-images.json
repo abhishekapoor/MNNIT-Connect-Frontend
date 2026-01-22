@@ -1,0 +1,70 @@
+{
+  "placeholderImages": [
+    {
+      "id": "campus-hub-hero",
+      "description": "Students studying and collaborating on a university campus",
+      "imageUrl": "https://images.unsplash.com/photo-1523240795612-9a054b0db644?q=80&w=1400",
+      "imageHint": "students campus"
+    },
+    {
+      "id": "user-avatar",
+      "description": "User avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3Njg1NjA0NzN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "club-1",
+      "description": "AI & Robotics Club",
+      "imageUrl": "https://images.unsplash.com/photo-1768323102310-965beb4849ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxyb2JvdCUyMHRlY2hub2xvZ3l8ZW58MHx8fHwxNzY4NTc3NDMxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "robot technology"
+    },
+    {
+      "id": "club-2",
+      "description": "Debate Society",
+      "imageUrl": "https://images.unsplash.com/photo-1633457689664-8b62c897e185?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxkaXNjdXNzaW9uJTIwbWVldGluZ3xlbnwwfHx8fDE3Njg2NDQwMzh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "discussion meeting"
+    },
+    {
+      "id": "club-3",
+      "description": "Creative Writing Guild",
+      "imageUrl": "https://images.unsplash.com/photo-1689023540541-59aa2513b750?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxib29rJTIwd3JpdGluZ3xlbnwwfHx8fDE3Njg2NDQwMzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "book writing"
+    },
+    {
+      "id": "club-4",
+      "description": "Photography Club",
+      "imageUrl": "https://images.unsplash.com/photo-1720958371916-03809cae5cc5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjYW1lcmElMjBsZW5zfGVufDB8fHx8MTc2ODU3NjQzMHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "camera lens"
+    },
+    {
+      "id": "club-5",
+      "description": "Gaming Association",
+      "imageUrl": "https://images.unsplash.com/photo-1638478889456-4e38c4b24246?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxnYW1lJTIwY29udHJvbGxlcnxlbnwwfHx8fDE3Njg2NDQwMzd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "game controller"
+    },
+    {
+      "id": "club-6",
+      "description": "Entrepreneurship Hub",
+      "imageUrl": "https://images.unsplash.com/photo-1590098563742-9d39f4d048e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxidXNpbmVzcyUyMHN0YXJ0dXB8ZW58MHx8fHwxNzY4NjQ0MDM4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business startup"
+    },
+    {
+      "id": "found-item-1",
+      "description": "Black Leather Wallet",
+      "imageUrl": "https://images.unsplash.com/photo-1676276550341-00e94a953058?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHx3YWxsZXQlMjBsZWF0aGVyfGVufDB8fHx8MTc2ODYyMjYyNnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "wallet leather"
+    },
+    {
+      "id": "found-item-2",
+      "description": "Silver Key Set",
+      "imageUrl": "https://images.unsplash.com/photo-1758351507272-aa6929fe997e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxrZXlzJTIwbWV0YWx8ZW58MHx8fHwxNzY4NjIyNjI2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "keys metal"
+    },
+    {
+      "id": "found-item-3",
+      "description": "Blue Hydro Flask",
+      "imageUrl": "https://images.unsplash.com/photo-1544003484-3cd181d17917?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHx3YXRlciUyMGJvdHRsZXxlbnwwfHx8fDE3Njg2MDEyMzV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "water bottle"
+    }
+  ]
+}
