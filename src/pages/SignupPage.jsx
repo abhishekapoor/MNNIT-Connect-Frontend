@@ -7,11 +7,13 @@ import { Label } from '@/components/ui/label'
 import { GraduationCap, Loader2, Info, CheckCircle } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import api from '@/services/api'
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
+    registrationNumber: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false,
@@ -35,7 +37,7 @@ export default function SignupPage() {
     setLoading(true)
 
     // Validation
-    if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
+    if (!formData.fullName || !formData.email || !formData.registrationNumber || !formData.password || !formData.confirmPassword) {
       setError('All fields are required')
       setLoading(false)
       return
@@ -59,17 +61,28 @@ export default function SignupPage() {
       return
     }
 
+    try{
+      const res = await api.post("/auth/signup", formData);
+
+      console.log(res);
+      alert("Registered Successful");
+    }catch(error){
+      console.error("Signup Failed:", 
+          error.response?.data || error.message
+        );
+        alert("Failed to register");
+    }
     // Simulate API call
-    setTimeout(() => {
-      setSuccess(true)
-      localStorage.setItem('user', JSON.stringify({ 
-        name: formData.fullName, 
-        email: formData.email 
-      }))
-      setTimeout(() => {
-        navigate('/app/dashboard')
-      }, 1500)
-    }, 1000)
+    // setTimeout(() => {
+    //   setSuccess(true)
+    //   localStorage.setItem('user', JSON.stringify({ 
+    //     name: formData.fullName, 
+    //     email: formData.email 
+    //   }))
+    //   setTimeout(() => {
+    //     navigate('/app/dashboard')
+    //   }, 1500)
+    // }, 1000)
   }
 
   return (
@@ -127,6 +140,18 @@ export default function SignupPage() {
                   type="email"
                   placeholder="john@example.com"
                   value={formData.email}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="registrationNumber">Registration Number</Label>
+                <Input
+                  id="registrationNumber"
+                  name="registrationNumber"
+                  placeholder="e.g., 2023001"
+                  value={formData.registrationNumber}
                   onChange={handleChange}
                   required
                 />
