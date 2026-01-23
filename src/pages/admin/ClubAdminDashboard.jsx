@@ -8,7 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, MapPin, Users, Mail, Phone, Building2, Edit2, LogOut, TrendingUp, Award } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { clubAdminsData } from "@/lib/clubAdminData";
+import { clubAdminsData } from "@/lib/clubAdminData"
+import { eventAPI } from '@/services/api'
 
 export default function ClubAdminDashboard() {
   const navigate = useNavigate()
@@ -34,8 +35,16 @@ export default function ClubAdminDashboard() {
   const [isEditingClubProfile, setIsEditingClubProfile] = useState(false)
   
   const [events, setEvents] = useState(userData.events)
-  const [newEvent, setNewEvent] = useState({ title: '', date: '', description: '', poster: null })
+  const [newEvent, setNewEvent] = useState({ 
+    title: '', 
+    date: '', 
+    description: '', 
+    category: 'WORKSHOP',
+    venue: '',
+    poster: null 
+  })
   const [isEventFormOpen, setIsEventFormOpen] = useState(false)
+  const [isSubmittingEvent, setIsSubmittingEvent] = useState(false)
 
   useEffect(() => {
     // Redirect to login if not authenticated
@@ -44,26 +53,68 @@ export default function ClubAdminDashboard() {
     }
   }, [user, navigate])
 
-  const handleAddEvent = (e) => {
+  const handleAddEvent = async (e) => {
     e.preventDefault()
-    if (newEvent.title && newEvent.date) {
+    if (!newEvent.title || !newEvent.date || !newEvent.category || !newEvent.venue) {
+      alert('Please fill in all required fields (Title, Date, Category, Venue)')
+      return
+    }
+
+    setIsSubmittingEvent(true)
+    try {
+      // Prepare event data for API
+      const eventPayload = {
+        title: newEvent.title,
+        description: newEvent.description,
+        category: newEvent.category,
+        venue: newEvent.venue,
+        eventDate: new Date(newEvent.date).toISOString()
+      }
+
+      // Call the API to create event
+      const response = await eventAPI.createEvent(eventPayload)
+      
+      // Add the event to local state for immediate display
       setEvents([...events, { 
         id: events.length + 1, 
         title: newEvent.title, 
         date: newEvent.date, 
         description: newEvent.description,
+        category: newEvent.category,
+        venue: newEvent.venue,
         attendees: 0,
         status: 'Upcoming'
       }])
-      setNewEvent({ title: '', date: '', description: '', poster: null })
+      
+      // Reset form
+      setNewEvent({ 
+        title: '', 
+        date: '', 
+        description: '', 
+        category: 'WORKSHOP',
+        venue: '',
+        poster: null 
+      })
       setIsEventFormOpen(false)
       alert('Event created successfully!')
+    } catch (error) {
+      console.error('Error creating event:', error)
+      alert('Failed to create event. Please try again.')
+    } finally {
+      setIsSubmittingEvent(false)
     }
   }
 
-  const deleteEvent = (id) => {
-    setEvents(events.filter(e => e.id !== id))
-    alert('Event deleted!')
+  const deleteEvent = async (id) => {
+    try {
+      // Call API to delete event
+      await eventAPI.deleteEvent(id)
+      setEvents(events.filter(e => e.id !== id))
+      alert('Event deleted successfully!')
+    } catch (error) {
+      console.error('Error deleting event:', error)
+      alert('Failed to delete event. Please try again.')
+    }
   }
 
   const handleSaveProfile = () => {
@@ -279,21 +330,47 @@ export default function ClubAdminDashboard() {
                 <form onSubmit={handleAddEvent} className="space-y-4 p-4 border rounded-lg bg-muted/50">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="eventTitle">Event Title</Label>
+                      <Label htmlFor="eventTitle">Event Title *</Label>
                       <Input
                         id="eventTitle"
                         placeholder="e.g., Workshop on Web Dev"
                         value={newEvent.title}
                         onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
+                        required
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="eventDate">Event Date</Label>
+                      <Label htmlFor="eventDate">Event Date *</Label>
                       <Input
                         id="eventDate"
                         type="date"
                         value={newEvent.date}
                         onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="eventCategory">Category *</Label>
+                      <select
+                        id="eventCategory"
+                        className="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground"
+                        value={newEvent.category}
+                        onChange={(e) => setNewEvent({...newEvent, category: e.target.value})}
+                        required
+                      >
+                        <option value="WORKSHOP">Workshop</option>
+                        <option value="FEST">Fest</option>
+                        <option value="ACADEMIC">Academic</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="eventVenue">Venue *</Label>
+                      <Input
+                        id="eventVenue"
+                        placeholder="e.g., Main Auditorium"
+                        value={newEvent.venue}
+                        onChange={(e) => setNewEvent({...newEvent, venue: e.target.value})}
+                        required
                       />
                     </div>
                   </div>
@@ -316,7 +393,9 @@ export default function ClubAdminDashboard() {
                     />
                   </div>
                   <div className="flex gap-2">
-                    <Button type="submit" className="flex-1">Create Event</Button>
+                    <Button type="submit" className="flex-1" disabled={isSubmittingEvent}>
+                      {isSubmittingEvent ? 'Creating...' : 'Create Event'}
+                    </Button>
                     <Button type="button" variant="outline" onClick={() => setIsEventFormOpen(false)} className="flex-1">Cancel</Button>
                   </div>
                 </form>
