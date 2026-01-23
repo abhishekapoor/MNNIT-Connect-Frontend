@@ -6,12 +6,17 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { GraduationCap } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
+import api from '@/services/api'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [role, setRole] = useState('student')
   const [localError, setLocalError] = useState('')
+  const [showForgotPassword, setShowForgotPassword] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState('')
+  const [forgotLoading, setForgotLoading] = useState(false)
+  const [forgotMessage, setForgotMessage] = useState('')
   const navigate = useNavigate()
   const { login, loading } = useAuth()
 
@@ -25,10 +30,15 @@ export default function LoginPage() {
       return
     }
 
-
-    // If demo credentials didn't match, try backend
     try {
-      await login(email, password, role)
+      // Map frontend role names to backend role names
+      const roleMap = {
+        'student': 'STUDENT',
+        'club_admin': 'CLUB_ADMIN',
+        'super_admin': 'ADMIN'
+      }
+      
+      await login(email, password, roleMap[role])
       
       // Navigate based on role
       if (role === 'club_admin') {
@@ -40,6 +50,32 @@ export default function LoginPage() {
       }
     } catch (error) {
       setLocalError('Invalid credentials. Please check and try again.')
+    }
+  }
+
+  const handleForgotPassword = async (e) => {
+    e.preventDefault()
+    setForgotMessage('')
+    setForgotLoading(true)
+
+    if (!forgotEmail) {
+      setForgotMessage('Please enter your email')
+      setForgotLoading(false)
+      return
+    }
+
+    try {
+      const response = await api.post('/auth/forget-password', { email: forgotEmail })
+      setForgotMessage('Check your email for password reset instructions')
+      setForgotEmail('')
+      setTimeout(() => {
+        setShowForgotPassword(false)
+        setForgotMessage('')
+      }, 3000)
+    } catch (error) {
+      setForgotMessage(error.response?.data?.message || 'Failed to process request')
+    } finally {
+      setForgotLoading(false)
     }
   }
 
@@ -60,85 +96,122 @@ export default function LoginPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* Role Selection */}
-            <div className="space-y-3 mb-4">
-              <Label>Select Your Role</Label>
-              <div className="grid grid-cols-3 gap-2">
-                {[
-                  { value: 'student', label: 'Student' },
-                  { value: 'club_admin', label: 'Club Admin' },
-                  { value: 'super_admin', label: 'Admin' }
-                ].map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => setRole(r.value)}
-                    className={`p-2 rounded-lg text-sm font-medium transition-colors ${
-                      role === r.value
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted text-muted-foreground hover:bg-accent'
-                    }`}
+            {showForgotPassword ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Reset Your Password</h3>
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="forgotEmail">Email Address</Label>
+                    <Input
+                      id="forgotEmail"
+                      type="email"
+                      placeholder="your@email.com"
+                      value={forgotEmail}
+                      onChange={(e) => setForgotEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {forgotMessage && (
+                    <div className={`p-3 rounded-lg text-sm ${
+                      forgotMessage.includes('Check') 
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-800 border border-red-200'
+                    }`}>
+                      {forgotMessage}
+                    </div>
+                  )}
+                  <Button type="submit" className="w-full" disabled={forgotLoading}>
+                    {forgotLoading ? 'Sending...' : 'Send Reset Link'}
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full"
+                    onClick={() => {
+                      setShowForgotPassword(false)
+                      setForgotMessage('')
+                    }}
                   >
-                    {r.label}
-                  </button>
-                ))}
+                    Back to Login
+                  </Button>
+                </form>
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Role Selection */}
+                <div className="space-y-3 mb-4">
+                  <Label>Select Your Role</Label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { value: 'student', label: 'Student' },
+                      { value: 'club_admin', label: 'Club Admin' },
+                      { value: 'super_admin', label: 'Admin' }
+                    ].map((r) => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        onClick={() => setRole(r.value)}
+                        className={`p-2 rounded-lg text-sm font-medium transition-colors ${
+                          role === r.value
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground hover:bg-accent'
+                        }`}
+                      >
+                        {r.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="m@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <Button type="submit" className="w-full">
-                Login
-              </Button>
-            </form>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input 
+                      id="email" 
+                      type="email" 
+                      placeholder="m@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <Label htmlFor="password">Password</Label>
+                      <button
+                        type="button"
+                        onClick={() => setShowForgotPassword(true)}
+                        className="text-sm text-primary hover:underline"
+                      >
+                        Forgot?
+                      </button>
+                    </div>
+                    <Input 
+                      id="password" 
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {localError && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                      {localError}
+                    </div>
+                  )}
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading ? 'Logging in...' : 'Login'}
+                  </Button>
+                </form>
 
-            <div className="mt-4 text-center text-sm">
-              Don't have an account?{' '}
-              <Link to="/signup" className="underline">
-                Sign up
-              </Link>
-            </div>
-
-            {/* Demo Credentials Info */}
-            <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs max-h-48 overflow-y-auto">
-              <p className="font-semibold text-blue-900 mb-2">📝 Demo Credentials:</p>
-              <div className="space-y-1 text-blue-800">
-                <p><strong>Student:</strong> student@mnnit.ac.in / student123</p>
-                <p><strong>Super Admin:</strong> superadmin@mnnit.ac.in / admin123</p>
-                <p className="font-semibold mt-2">11 Club Admins (password: admin123):</p>
-                <p>• rahul.kumar@mnnit.ac.in (Tech Club)</p>
-                <p>• priya.sharma@mnnit.ac.in (Cultural)</p>
-                <p>• amit.patel@mnnit.ac.in (Sports)</p>
-                <p>• rohit.verma@mnnit.ac.in (Entrepreneurship)</p>
-                <p>• sneha.gupta@mnnit.ac.in (Art & Design)</p>
-                <p>• vikrant.singh@mnnit.ac.in (Music)</p>
-                <p>• ankita.gupta@mnnit.ac.in (Coding)</p>
-                <p>• deepak.patel@mnnit.ac.in (Robotics)</p>
-                <p>• sakshi.negi@mnnit.ac.in (Environment)</p>
-                <p>• tanvi.singh@mnnit.ac.in (Debating)</p>
-                <p>• vaibhav.singh@mnnit.ac.in (Photography)</p>
-              </div>
-            </div>
+                <div className="mt-4 text-center text-sm">
+                  Don't have an account?{' '}
+                  <Link to="/signup" className="underline">
+                    Sign up
+                  </Link>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

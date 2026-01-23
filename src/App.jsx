@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { useAuth } from './context/AuthContext'
 import LandingPage from './pages/LandingPage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
@@ -15,6 +16,21 @@ import SuperAdminDashboard from './pages/admin/SuperAdminDashboard'
 import { Toaster } from '@/components/ui/toaster'
 import { AuthProvider } from './context/AuthContext'
 
+// Protected Route Component
+function ProtectedRoute({ children, requiredRole = null }) {
+  const { isAuthenticated, user } = useAuth()
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />
+  }
+  
+  if (requiredRole && user?.role !== requiredRole) {
+    return <Navigate to="/" replace />
+  }
+  
+  return children
+}
+
 function App() {
   return (
     <>
@@ -27,7 +43,11 @@ function App() {
             <Route path="/signup" element={<SignupPage />} />
             
             {/* Student Dashboard Routes */}
-            <Route path="/app" element={<DashboardLayout />}>
+            <Route path="/app" element={
+              <ProtectedRoute requiredRole="student">
+                <DashboardLayout />
+              </ProtectedRoute>
+            }>
               <Route path="dashboard" element={<Dashboard />} />
               <Route path="clubs" element={<Clubs />} />
               <Route path="events" element={<Events />} />
@@ -37,9 +57,21 @@ function App() {
             </Route>
 
             {/* Admin Routes */}
-            <Route path="/admin" element={<AdminLayout />}>
-              <Route path="club" element={<ClubAdminDashboard />} />
-              <Route path="super" element={<SuperAdminDashboard />} />
+            <Route path="/admin" element={
+              <ProtectedRoute>
+                <AdminLayout />
+              </ProtectedRoute>
+            }>
+              <Route path="club" element={
+                <ProtectedRoute requiredRole="club_admin">
+                  <ClubAdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="super" element={
+                <ProtectedRoute requiredRole="super_admin">
+                  <SuperAdminDashboard />
+                </ProtectedRoute>
+              } />
             </Route>
 
             {/* Catch all */}

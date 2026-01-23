@@ -18,6 +18,7 @@ export default function SignupPage() {
     branch: '',
     password: '',
     confirmPassword: '',
+    role: 'STUDENT',
     agreeTerms: false,
   })
   const [loading, setLoading] = useState(false)
@@ -39,7 +40,7 @@ export default function SignupPage() {
     setLoading(true)
 
     // Validation
-    if (!formData.fullName || !formData.email || !formData.registrationNumber || !formData.course || !formData.branch || !formData.password || !formData.confirmPassword) {
+    if (!formData.fullName || !formData.email || !formData.registrationNumber || !formData.course || !formData.branch || !formData.password || !formData.confirmPassword || !formData.role) {
       setError('All fields are required')
       setLoading(false)
       return
@@ -72,7 +73,7 @@ export default function SignupPage() {
         course: formData.course,
         branch: formData.branch,
         password: formData.password,
-        role: 'STUDENT'
+        role: formData.role
       };
       
       const res = await api.post("/auth/signup", signupData);
@@ -88,6 +89,7 @@ export default function SignupPage() {
         branch: '',
         password: '',
         confirmPassword: '',
+        role: 'STUDENT',
         agreeTerms: false,
       });
       // Redirect after 2 seconds
@@ -150,6 +152,30 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label>Select Your Role</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'STUDENT', label: 'Student' },
+                    { value: 'CLUB_ADMIN', label: 'Club Admin' },
+                    { value: 'ADMIN', label: 'Admin' }
+                  ].map((r) => (
+                    <button
+                      key={r.value}
+                      type="button"
+                      onClick={() => setFormData(prev => ({ ...prev, role: r.value }))}
+                      className={`p-2 rounded-lg text-sm font-medium transition-colors ${
+                        formData.role === r.value
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground hover:bg-accent'
+                      }`}
+                    >
+                      {r.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div className="space-y-2">
                 <Label htmlFor="fullName">Full Name</Label>
                 <Input
