@@ -36,15 +36,19 @@ export function AuthProvider({ children }) {
         withCredentials: true,
       })
 
+      const { token, user } = response.data
+      
       const userData = {
-        id: response.data.id || email,
-        email: response.data.email || email,
-        name: response.data.name || email.split('@')[0],
-        role: response.data.role || role,
-        token: response.data.token || null,
-        clubId: response.data.clubId || null,
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        token: token,
+        clubId: user.clubId || null,
       }
 
+      // Store token in localStorage for API requests
+      localStorage.setItem('token', token)
       setUser(userData)
       setAdminData(response.data)
       localStorage.setItem('user', JSON.stringify(userData))
@@ -145,3 +149,6 @@ export function useAuth() {
   }
   return context
 }
+
+export { AuthContext }
+

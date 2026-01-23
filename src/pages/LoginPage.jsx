@@ -15,20 +15,6 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { login, loading } = useAuth()
 
-  // All 11 club admins credentials
-  const clubAdminCredentials = [
-    { email: 'rahul.kumar@mnnit.ac.in', password: 'admin123', club: 'Tech Innovation Club' },
-    { email: 'priya.sharma@mnnit.ac.in', password: 'admin123', club: 'Cultural Club' },
-    { email: 'amit.patel@mnnit.ac.in', password: 'admin123', club: 'Sports Club' },
-    { email: 'rohit.verma@mnnit.ac.in', password: 'admin123', club: 'Entrepreneurship Club' },
-    { email: 'sneha.gupta@mnnit.ac.in', password: 'admin123', club: 'Art & Design Club' },
-    { email: 'vikrant.singh@mnnit.ac.in', password: 'admin123', club: 'Music Club' },
-    { email: 'ankita.gupta@mnnit.ac.in', password: 'admin123', club: 'Coding Club' },
-    { email: 'deepak.patel@mnnit.ac.in', password: 'admin123', club: 'Robotics Club' },
-    { email: 'sakshi.negi@mnnit.ac.in', password: 'admin123', club: 'Environmental Club' },
-    { email: 'tanvi.singh@mnnit.ac.in', password: 'admin123', club: 'Debating Club' },
-    { email: 'vaibhav.singh@mnnit.ac.in', password: 'admin123', club: 'Photography Club' },
-  ]
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -39,49 +25,6 @@ export default function LoginPage() {
       return
     }
 
-    // Demo credentials
-    const demoCredentials = {
-      student: { email: 'student@mnnit.ac.in', password: 'student123' },
-      club_admin: clubAdminCredentials,
-      super_admin: { email: 'superadmin@mnnit.ac.in', password: 'admin123' }
-    }
-
-    let isValid = false
-
-    // Check demo credentials first
-    if (role === 'club_admin') {
-      const clubAdmin = demoCredentials.club_admin.find(
-        admin => admin.email === email && admin.password === password
-      )
-      if (clubAdmin) {
-        localStorage.setItem('user', JSON.stringify({
-          id: email,
-          email,
-          role,
-          name: email.split('@')[0],
-          token: 'demo_token'
-        }))
-        navigate('/admin/club')
-        return
-      }
-    } else {
-      const demo = demoCredentials[role]
-      if (email === demo?.email && password === demo?.password) {
-        localStorage.setItem('user', JSON.stringify({
-          id: email,
-          email,
-          role,
-          name: email.split('@')[0],
-          token: 'demo_token'
-        }))
-        if (role === 'super_admin') {
-          navigate('/admin/super')
-        } else {
-          navigate('/app/dashboard')
-        }
-        return
-      }
-    }
 
     // If demo credentials didn't match, try backend
     try {

@@ -16,7 +16,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { PlaceHolderImages } from '@/lib/placeholder-images'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import api from '@/services/api'
 
 const navItems = [
   { href: '/app/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -33,9 +34,10 @@ export default function DashboardLayout() {
   const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileOpen, setProfileOpen] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [userProfile, setUserProfile] = useState({
-    name: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).name : 'Student User',
-    email: localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')).email : 'student@campus.edu',
+    name: 'Student User',
+    email: 'student@campus.edu',
     registrationNumber: 'CB2024001',
     role: 'Student',
     image: null
@@ -43,8 +45,38 @@ export default function DashboardLayout() {
   const [editMode, setEditMode] = useState(false)
   const [editData, setEditData] = useState({ ...userProfile })
 
+  // Fetch user profile from database
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        setLoading(true)
+        const response = await api.get('/auth/profile')
+        const { user } = response.data
+        
+        const profileData = {
+          name: user.name,
+          email: user.email,
+          registrationNumber: user.regNo,
+          role: user.role,
+          image: null
+        }
+        
+        setUserProfile(profileData)
+        setEditData(profileData)
+      } catch (error) {
+        console.error('Error fetching profile:', error)
+        // Keep default values if fetch fails
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchUserProfile()
+  }, [])
+
   const handleLogout = () => {
     localStorage.removeItem('user')
+    localStorage.removeItem('token')
     navigate('/')
   }
 

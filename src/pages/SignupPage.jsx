@@ -14,6 +14,8 @@ export default function SignupPage() {
     fullName: '',
     email: '',
     registrationNumber: '',
+    course: '',
+    branch: '',
     password: '',
     confirmPassword: '',
     agreeTerms: false,
@@ -37,7 +39,7 @@ export default function SignupPage() {
     setLoading(true)
 
     // Validation
-    if (!formData.fullName || !formData.email || !formData.registrationNumber || !formData.password || !formData.confirmPassword) {
+    if (!formData.fullName || !formData.email || !formData.registrationNumber || !formData.course || !formData.branch || !formData.password || !formData.confirmPassword) {
       setError('All fields are required')
       setLoading(false)
       return
@@ -62,15 +64,43 @@ export default function SignupPage() {
     }
 
     try{
-      const res = await api.post("/auth/signup", formData);
+      // Map form field names to API field names
+      const signupData = {
+        name: formData.fullName,
+        email: formData.email,
+        regNo: formData.registrationNumber,
+        course: formData.course,
+        branch: formData.branch,
+        password: formData.password,
+        role: 'STUDENT'
+      };
+      
+      const res = await api.post("/auth/signup", signupData);
 
       console.log(res);
-      alert("Registered Successful");
+      alert("Registered Successfully!");
+      setSuccess(true);
+      setFormData({
+        fullName: '',
+        email: '',
+        registrationNumber: '',
+        course: '',
+        branch: '',
+        password: '',
+        confirmPassword: '',
+        agreeTerms: false,
+      });
+      // Redirect after 2 seconds
+      setTimeout(() => {
+        navigate('/login');
+      }, 2000);
     }catch(error){
       console.error("Signup Failed:", 
           error.response?.data || error.message
         );
-        alert("Failed to register");
+      setError(error.response?.data?.message || "Failed to register. Please try again.");
+    }finally{
+      setLoading(false);
     }
     // Simulate API call
     // setTimeout(() => {
@@ -152,6 +182,30 @@ export default function SignupPage() {
                   name="registrationNumber"
                   placeholder="e.g., 2023001"
                   value={formData.registrationNumber}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="course">Course</Label>
+                <Input
+                  id="course"
+                  name="course"
+                  placeholder="e.g., B.Tech"
+                  value={formData.course}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="branch">Branch</Label>
+                <Input
+                  id="branch"
+                  name="branch"
+                  placeholder="e.g., Computer Science"
+                  value={formData.branch}
                   onChange={handleChange}
                   required
                 />
