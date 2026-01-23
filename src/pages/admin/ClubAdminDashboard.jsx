@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, MapPin, Users, Mail, Phone, Building2, Edit2, LogOut, TrendingUp, Award } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { clubAdminsData } from '@/lib/clubAdminsData'
+import { clubAdminsData } from "@/lib/clubAdminData";
 
 export default function ClubAdminDashboard() {
   const navigate = useNavigate()

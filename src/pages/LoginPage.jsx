@@ -39,8 +39,52 @@ export default function LoginPage() {
       return
     }
 
+    // Demo credentials
+    const demoCredentials = {
+      student: { email: 'student@mnnit.ac.in', password: 'student123' },
+      club_admin: clubAdminCredentials,
+      super_admin: { email: 'superadmin@mnnit.ac.in', password: 'admin123' }
+    }
+
+    let isValid = false
+
+    // Check demo credentials first
+    if (role === 'club_admin') {
+      const clubAdmin = demoCredentials.club_admin.find(
+        admin => admin.email === email && admin.password === password
+      )
+      if (clubAdmin) {
+        localStorage.setItem('user', JSON.stringify({
+          id: email,
+          email,
+          role,
+          name: email.split('@')[0],
+          token: 'demo_token'
+        }))
+        navigate('/admin/club')
+        return
+      }
+    } else {
+      const demo = demoCredentials[role]
+      if (email === demo?.email && password === demo?.password) {
+        localStorage.setItem('user', JSON.stringify({
+          id: email,
+          email,
+          role,
+          name: email.split('@')[0],
+          token: 'demo_token'
+        }))
+        if (role === 'super_admin') {
+          navigate('/admin/super')
+        } else {
+          navigate('/app/dashboard')
+        }
+        return
+      }
+    }
+
+    // If demo credentials didn't match, try backend
     try {
-      // Try backend login first
       await login(email, password, role)
       
       // Navigate based on role
@@ -52,52 +96,7 @@ export default function LoginPage() {
         navigate('/app/dashboard')
       }
     } catch (error) {
-      // For demo/testing: check if it's a valid demo credential
-      const demoCredentials = {
-        student: { email: 'student@mnnit.ac.in', password: 'student123' },
-        club_admin: clubAdminCredentials,
-        super_admin: { email: 'superadmin@mnnit.ac.in', password: 'admin123' }
-      }
-
-      let isValid = false
-
-      if (role === 'club_admin') {
-        const clubAdmin = demoCredentials.club_admin.find(
-          admin => admin.email === email && admin.password === password
-        )
-        if (clubAdmin) {
-          localStorage.setItem('user', JSON.stringify({
-            id: email,
-            email,
-            role,
-            name: email.split('@')[0],
-            token: 'demo_token'
-          }))
-          navigate('/admin/club')
-          isValid = true
-        }
-      } else {
-        const demo = demoCredentials[role]
-        if (email === demo.email && password === demo.password) {
-          localStorage.setItem('user', JSON.stringify({
-            id: email,
-            email,
-            role,
-            name: email.split('@')[0],
-            token: 'demo_token'
-          }))
-          if (role === 'super_admin') {
-            navigate('/admin/super')
-          } else {
-            navigate('/app/dashboard')
-          }
-          isValid = true
-        }
-      }
-
-      if (!isValid) {
-        setLocalError(error.response?.data?.message || 'Invalid credentials. Check demo credentials below.')
-      }
+      setLocalError('Invalid credentials. Please check and try again.')
     }
   }
 

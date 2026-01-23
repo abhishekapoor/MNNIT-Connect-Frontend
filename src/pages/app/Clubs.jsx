@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { clubs } from '@/lib/data'
 import { X, Users, Edit2, Check } from 'lucide-react'
-import { clubAdminsData } from '@/lib/clubAdminsData'
+import { clubAdminsData } from '@/lib/clubAdminData'
 
 export default function Clubs() {
   const [selectedClub, setSelectedClub] = useState(null)
