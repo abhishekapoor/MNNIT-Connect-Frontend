@@ -31,19 +31,14 @@ export default function LoginPage() {
     }
 
     try {
-      // Map frontend role names to backend role names
-      const roleMap = {
-        'student': 'STUDENT',
-        'club_admin': 'CLUB_ADMIN',
-        'super_admin': 'ADMIN'
-      }
+      // Call login with email and password only
+      // Backend will return the actual role from database
+      const userData = await login(email, password)
       
-      await login(email, password, roleMap[role])
-      
-      // Navigate based on role
-      if (role === 'club_admin') {
+      // Navigate based on role returned from backend
+      if (userData.role === 'CLUB_ADMIN') {
         navigate('/admin/club')
-      } else if (role === 'super_admin') {
+      } else if (userData.role === 'ADMIN') {
         navigate('/admin/super')
       } else {
         navigate('/app/dashboard')

@@ -24,14 +24,13 @@ export function AuthProvider({ children }) {
   }, [])
 
   // Login function - calls backend
-  const login = async (email, password, role) => {
+  const login = async (email, password) => {
     setLoading(true)
     setError(null)
     try {
       const response = await api.post('/auth/login', {
         email,
-        password,
-        role,
+        password
       }, {
         withCredentials: true,
       })
