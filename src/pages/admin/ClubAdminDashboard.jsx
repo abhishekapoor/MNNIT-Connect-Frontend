@@ -6,75 +6,114 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
-import { Calendar, MapPin, Users, Mail, Phone, Building2, Edit2, LogOut, TrendingUp, Award } from 'lucide-react'
+import { Calendar, MapPin, Users, Mail, Phone, LogOut, AlertCircle, Loader } from 'lucide-react'
 import { useAuth } from '@/context/AuthContext'
-import { clubAdminsData } from "@/lib/clubAdminData";
+import api from '@/services/api'
 
 export default function ClubAdminDashboard() {
   const navigate = useNavigate()
-  const { user, logout, loading } = useAuth()
+  const { user, logout } = useAuth()
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
   
-  // Get user-specific data from mock data (fallback until backend ready)
-  const userEmail = user?.email
-  const userData = clubAdminsData[userEmail] || clubAdminsData['rahul.kumar@mnnit.ac.in']
-
-  const [clubAdmin, setClubAdmin] = useState(userData.admin)
-  const [club] = useState(userData.club)
-  const [editForm, setEditForm] = useState(clubAdmin)
-  const [clubEditForm, setClubEditForm] = useState({
-    description: club.description,
-    achievements: club.achievements || '',
-    instagram: club.socialMedia?.instagram || '',
-    linkedin: club.socialMedia?.linkedin || '',
-    facebook: club.socialMedia?.facebook || '',
-    location: club.location || ''
+  const [clubData, setClubData] = useState(null)
+  const [events, setEvents] = useState([])
+  const [formData, setFormData] = useState({
+    title: '',
+    category: 'WORKSHOP',
+    venue: '',
+    eventDate: '',
+    eventTime: '10:00 AM',
+    description: ''
   })
-  const [isEditingClubProfile, setIsEditingClubProfile] = useState(false)
-  
-  const [events, setEvents] = useState(userData.events)
-  const [newEvent, setNewEvent] = useState({ title: '', date: '', description: '', poster: null })
-  const [isEventFormOpen, setIsEventFormOpen] = useState(false)
+  const [isCreatingEvent, setIsCreatingEvent] = useState(false)
 
   useEffect(() => {
-    // Redirect to login if not authenticated
-    if (!user?.email) {
+    if (!user?.email || user.role !== 'CLUB_ADMIN') {
       navigate('/login')
+    } else {
+      fetchClubData()
     }
   }, [user, navigate])
 
-  const handleAddEvent = (e) => {
-    e.preventDefault()
-    if (newEvent.title && newEvent.date) {
-      setEvents([...events, { 
-        id: events.length + 1, 
-        title: newEvent.title, 
-        date: newEvent.date, 
-        description: newEvent.description,
-        attendees: 0,
-        status: 'Upcoming'
-      }])
-      setNewEvent({ title: '', date: '', description: '', poster: null })
-      setIsEventFormOpen(false)
-      alert('Event created successfully!')
+  const fetchClubData = async () => {
+    try {
+      setLoading(true)
+      setError('')
+      
+      // Get user's clubs from their profile first (if needed)
+      // For now, we'll find the club where this user is clubAdmin
+      const clubsRes = await api.get('/club')
+      const userClub = clubsRes.data.clubs.find(c => c.clubAdmin?._id === user._id || c.clubAdmin?.email === user.email)
+      
+      if (!userClub) {
+        setError('No club found for this admin')
+        setLoading(false)
+        return
+      }
+
+      // Get full club data
+      const clubRes = await api.get(`/club/${userClub._id}/admin/dashboard`)
+      setClubData(clubRes.data.club)
+      setEvents(clubRes.data.events || [])
+    } catch (err) {
+      console.error('Error fetching club data:', err)
+      setError('Failed to load club data: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setLoading(false)
     }
   }
 
-  const deleteEvent = (id) => {
-    setEvents(events.filter(e => e.id !== id))
-    alert('Event deleted!')
+  const handleInputChange = (e) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSaveProfile = () => {
-    setClubAdmin(editForm)
-    setIsEditingProfile(false)
-    alert('Profile updated successfully!')
+  const handleCreateEvent = async (e) => {
+    e.preventDefault()
+    try {
+      setIsCreatingEvent(true)
+      
+      const eventData = {
+        ...formData,
+        club: clubData._id,
+        eventDate: new Date(formData.eventDate)
+      }
+
+      await api.post('/event', eventData)
+      alert('Event created successfully!')
+      
+      setFormData({
+        title: '',
+        category: 'WORKSHOP',
+        venue: '',
+        eventDate: '',
+        eventTime: '10:00 AM',
+        description: ''
+      })
+      
+      setActiveTab('events')
+      fetchClubData()
+    } catch (err) {
+      console.error('Error creating event:', err)
+      alert('Failed to create event: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setIsCreatingEvent(false)
+    }
   }
 
-  const handleSaveClubProfile = () => {
-    setIsEditingClubProfile(false)
-    alert('Club profile updated successfully!')
+  const handleDeleteEvent = async (eventId) => {
+    if (confirm('Are you sure you want to delete this event?')) {
+      try {
+        await api.delete(`/event/${eventId}`)
+        alert('Event deleted successfully!')
+        fetchClubData()
+      } catch (err) {
+        console.error('Error deleting event:', err)
+        alert('Failed to delete event')
+      }
+    }
   }
 
   const handleLogout = async () => {
@@ -86,427 +125,333 @@ export default function ClubAdminDashboard() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading...</p>
+          <Loader className="w-12 h-12 animate-spin text-primary mx-auto" />
+          <p className="mt-4 text-muted-foreground">Loading dashboard...</p>
         </div>
       </div>
     )
   }
 
+  if (error || !clubData) {
+    return (
+      <div className="space-y-6">
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-red-600" />
+          <p className="text-red-800">{error || 'Failed to load club data'}</p>
+        </div>
+        <Button onClick={handleLogout}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
+      </div>
+    )
+  }
+
+  const upcomingEvents = events.filter(e => new Date(e.eventDate) > new Date())
+  const pastEvents = events.filter(e => new Date(e.eventDate) <= new Date())
+
   return (
     <div className="space-y-6 pb-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Club Admin Dashboard</h1>
-        <p className="text-muted-foreground mt-2">Manage your club content and events</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Club Admin Dashboard</h1>
+          <p className="text-muted-foreground mt-2">Manage {clubData.name}</p>
+        </div>
+        <Button variant="outline" onClick={handleLogout}>
+          <LogOut className="h-4 w-4 mr-2" />
+          Logout
+        </Button>
       </div>
 
       {/* Main Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
           <TabsTrigger value="profile">Club Profile</TabsTrigger>
-          <TabsTrigger value="calendar">Calendar Sync</TabsTrigger>
         </TabsList>
 
-        {/* 1. DASHBOARD TAB */}
-        <TabsContent value="dashboard" className="space-y-4">
+        {/* DASHBOARD TAB */}
+        <TabsContent value="dashboard" className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Admin Profile Card */}
-            <Card className="md:col-span-1">
-              <CardHeader className="text-center">
-                <img 
-                  src={clubAdmin.image} 
-                  alt={clubAdmin.name}
-                  className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-primary"
-                />
-                <CardTitle>{clubAdmin.name}</CardTitle>
-                <CardDescription>{clubAdmin.position}</CardDescription>
+            {/* Stats */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Total Members</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <a href={`mailto:${clubAdmin.email}`} className="text-blue-600 hover:underline break-all">{clubAdmin.email}</a>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span>{clubAdmin.phone}</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Member since {clubAdmin.joinedDate}
-                  </div>
-                </div>
-                <Button 
-                  className="w-full" 
-                  variant="outline"
-                  onClick={() => setIsEditingProfile(!isEditingProfile)}
-                >
-                  <Edit2 className="h-4 w-4 mr-2" />
-                  {isEditingProfile ? 'Cancel' : 'Edit Profile'}
-                </Button>
+              <CardContent>
+                <p className="text-3xl font-bold">{clubData.members?.length || 0}</p>
               </CardContent>
             </Card>
 
-            {/* Edit Admin Profile */}
-            {isEditingProfile && (
-              <Card className="md:col-span-1">
-                <CardHeader>
-                  <CardTitle className="text-lg">Edit Your Profile</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-2">
-                    <Label>Name</Label>
-                    <Input 
-                      value={editForm.name}
-                      onChange={(e) => setEditForm({...editForm, name: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Phone</Label>
-                    <Input 
-                      value={editForm.phone}
-                      onChange={(e) => setEditForm({...editForm, phone: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Position</Label>
-                    <Input 
-                      value={editForm.position}
-                      onChange={(e) => setEditForm({...editForm, position: e.target.value})}
-                    />
-                  </div>
-                  <Button className="w-full" onClick={handleSaveProfile}>Save Changes</Button>
-                </CardContent>
-              </Card>
-            )}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Upcoming Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{upcomingEvents.length}</p>
+              </CardContent>
+            </Card>
 
-            {/* Club Overview */}
-            <div className={`${isEditingProfile ? "md:col-span-1" : "md:col-span-2"} space-y-4`}>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Building2 className="h-5 w-5" />
-                    Club Overview
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Club Name</p>
-                    <p className="font-semibold text-lg">{club.name}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">Description</p>
-                    <p className="text-sm">{club.description}</p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 border-t pt-4">
-                    <div className="flex items-center gap-2 text-sm">
-                      <Calendar className="h-4 w-4 text-muted-foreground" />
-                      <span>Founded: {club.founded}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-muted-foreground" />
-                      <span>{club.location}</span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Club Stats */}
-              <div className="grid grid-cols-3 gap-2">
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-3xl font-bold text-primary">{club.members}</div>
-                    <div className="text-xs text-muted-foreground">Members</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-3xl font-bold text-primary">{events.length}</div>
-                    <div className="text-xs text-muted-foreground">Events</div>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-6 text-center">
-                    <div className="text-3xl font-bold text-primary">{club.achievements}</div>
-                    <div className="text-xs text-muted-foreground">Achievements</div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Total Events</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold">{events.length}</p>
+              </CardContent>
+            </Card>
           </div>
 
-          {/* Club Coordinators */}
+          {/* Club Info */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Users className="h-5 w-5" />
-                Club Coordinators
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {club.coordinators.map((coord) => (
-                  <div key={coord.role} className="flex items-center justify-between p-3 border rounded-lg">
-                    <div>
-                      <p className="font-medium">{coord.name}</p>
-                      <p className="text-sm text-muted-foreground">{coord.role}</p>
-                      <p className="text-sm text-blue-600">{coord.email}</p>
-                    </div>
-                    <Badge variant="secondary">{coord.role}</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* 2. EVENTS MANAGEMENT TAB */}
-        <TabsContent value="events" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Club Events Management</CardTitle>
-              <CardDescription>Add, edit, delete and upload event posters</CardDescription>
+              <CardTitle>Club Information</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Add Event Form */}
-              {!isEventFormOpen ? (
-                <Button onClick={() => setIsEventFormOpen(true)} className="w-full">
-                  + Create New Event
-                </Button>
-              ) : (
-                <form onSubmit={handleAddEvent} className="space-y-4 p-4 border rounded-lg bg-muted/50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="eventTitle">Event Title</Label>
-                      <Input
-                        id="eventTitle"
-                        placeholder="e.g., Workshop on Web Dev"
-                        value={newEvent.title}
-                        onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="eventDate">Event Date</Label>
-                      <Input
-                        id="eventDate"
-                        type="date"
-                        value={newEvent.date}
-                        onChange={(e) => setNewEvent({...newEvent, date: e.target.value})}
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="eventDesc">Description</Label>
-                    <Input
-                      id="eventDesc"
-                      placeholder="Event description"
-                      value={newEvent.description}
-                      onChange={(e) => setNewEvent({...newEvent, description: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="eventPoster">Event Poster</Label>
-                    <Input
-                      id="eventPoster"
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => setNewEvent({...newEvent, poster: e.target.files?.[0]})}
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="flex-1">Create Event</Button>
-                    <Button type="button" variant="outline" onClick={() => setIsEventFormOpen(false)} className="flex-1">Cancel</Button>
-                  </div>
-                </form>
-              )}
-
-              {/* Events List */}
-              <div className="space-y-3">
-                <h3 className="font-semibold mt-6">Upcoming Events ({events.length})</h3>
-                {events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No events yet. Create your first event!</p>
-                ) : (
-                  events.map((event) => (
-                    <div key={event.id} className="p-4 border rounded-lg space-y-3">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <p className="font-semibold text-lg">{event.title}</p>
-                          <p className="text-sm text-muted-foreground">{event.date} • {event.attendees} attendees</p>
-                          {event.description && <p className="text-sm mt-2">{event.description}</p>}
-                          <Badge className="mt-2" variant={event.status === 'Completed' ? 'default' : event.status === 'Ongoing' ? 'secondary' : 'outline'}>
-                            {event.status}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">Edit</Button>
-                        <Button size="sm" variant="destructive" onClick={() => deleteEvent(event.id)}>Delete</Button>
-                      </div>
-                    </div>
-                  ))
-                )}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm text-muted-foreground">Club Name</p>
+                  <p className="font-semibold text-lg">{clubData.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Domain</p>
+                  <Badge>{clubData.domain}</Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Email</p>
+                  <p className="text-sm">{clubData.contactEmail || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Phone</p>
+                  <p className="text-sm">{clubData.contactPhone || 'Not provided'}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-muted-foreground">Description</p>
+                  <p className="text-sm">{clubData.description || 'No description'}</p>
+                </div>
               </div>
             </CardContent>
           </Card>
-        </TabsContent>
 
-        {/* 3. CLUB PROFILE TAB */}
-        <TabsContent value="profile" className="space-y-4">
+          {/* Upcoming Events */}
           <Card>
             <CardHeader>
-              <CardTitle>Club Profile Settings</CardTitle>
-              <CardDescription>Update club description, achievements, and contact information</CardDescription>
+              <CardTitle>Upcoming Events</CardTitle>
             </CardHeader>
             <CardContent>
-              {!isEditingClubProfile ? (
+              {upcomingEvents.length > 0 ? (
                 <div className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Description</p>
-                    <p className="text-sm">{club.description}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">Achievements</p>
-                    <p className="text-sm">{club.achievements || 'No achievements yet'}</p>
-                  </div>
-                  <div className="border-t pt-4">
-                    <p className="text-sm text-muted-foreground mb-3">Social Media & Contact</p>
-                    <div className="space-y-2">
-                      <p className="text-sm"><span className="font-semibold">Instagram:</span> {club.socialMedia?.instagram}</p>
-                      <p className="text-sm"><span className="font-semibold">LinkedIn:</span> {club.socialMedia?.linkedin}</p>
-                      <p className="text-sm"><span className="font-semibold">Facebook:</span> {club.socialMedia?.facebook}</p>
-                      <p className="text-sm"><span className="font-semibold">Location:</span> {club.location}</p>
+                  {upcomingEvents.map(event => (
+                    <div key={event._id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h3 className="font-semibold">{event.title}</h3>
+                          <p className="text-sm text-muted-foreground">{event.description}</p>
+                        </div>
+                        <Badge variant="outline">{event.category}</Badge>
+                      </div>
+                      <div className="grid grid-cols-2 text-sm text-muted-foreground">
+                        <p>📅 {new Date(event.eventDate).toLocaleDateString()}</p>
+                        <p>📍 {event.venue}</p>
+                        <p>👥 {event.registeredUsers?.length || 0} registered</p>
+                        <p>🕐 {event.eventTime}</p>
+                      </div>
                     </div>
-                  </div>
-                  <Button onClick={() => setIsEditingClubProfile(true)} className="w-full mt-4">
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Edit Club Profile
-                  </Button>
+                  ))}
                 </div>
               ) : (
-                <form onSubmit={(e) => { e.preventDefault(); handleSaveClubProfile(); }} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>Club Description</Label>
-                    <Input
-                      value={clubEditForm.description}
-                      onChange={(e) => setClubEditForm({...clubEditForm, description: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Achievements</Label>
-                    <Input
-                      value={clubEditForm.achievements}
-                      onChange={(e) => setClubEditForm({...clubEditForm, achievements: e.target.value})}
-                      placeholder="e.g., Won National Competition 2023"
-                    />
-                  </div>
-                  <div className="border-t pt-4">
-                    <h3 className="font-semibold mb-4">Social Media & Contact</h3>
-                    <div className="space-y-3">
-                      <div className="space-y-2">
-                        <Label>Instagram Handle</Label>
-                        <Input
-                          value={clubEditForm.instagram}
-                          onChange={(e) => setClubEditForm({...clubEditForm, instagram: e.target.value})}
-                          placeholder="@clubname"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>LinkedIn Profile</Label>
-                        <Input
-                          value={clubEditForm.linkedin}
-                          onChange={(e) => setClubEditForm({...clubEditForm, linkedin: e.target.value})}
-                          placeholder="Club LinkedIn name"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Facebook Page</Label>
-                        <Input
-                          value={clubEditForm.facebook}
-                          onChange={(e) => setClubEditForm({...clubEditForm, facebook: e.target.value})}
-                          placeholder="Club Facebook page"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Location</Label>
-                        <Input
-                          value={clubEditForm.location}
-                          onChange={(e) => setClubEditForm({...clubEditForm, location: e.target.value})}
-                          placeholder="Club location"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="submit" className="flex-1">Save Changes</Button>
-                    <Button type="button" variant="outline" onClick={() => setIsEditingClubProfile(false)} className="flex-1">Cancel</Button>
-                  </div>
-                </form>
+                <p className="text-muted-foreground">No upcoming events</p>
               )}
             </CardContent>
           </Card>
         </TabsContent>
 
-        {/* 4. CALENDAR SYNC TAB */}
-        <TabsContent value="calendar" className="space-y-4">
+        {/* EVENTS TAB */}
+        <TabsContent value="events" className="space-y-6">
+          {/* Create Event Form */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Calendar className="h-5 w-5" />
-                Event Calendar Sync
-              </CardTitle>
-              <CardDescription>Push your club events to the main campus calendar</CardDescription>
+              <CardTitle>Create New Event</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleCreateEvent} className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="title">Event Title *</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      value={formData.title}
+                      onChange={handleInputChange}
+                      placeholder="Event title"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="category">Category *</Label>
+                    <select
+                      id="category"
+                      name="category"
+                      value={formData.category}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border rounded-md"
+                    >
+                      <option value="WORKSHOP">Workshop</option>
+                      <option value="FEST">Fest</option>
+                      <option value="CULTURAL">Cultural</option>
+                      <option value="SPORTS">Sports</option>
+                      <option value="ACADEMIC">Academic</option>
+                      <option value="OTHER">Other</option>
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="venue">Venue *</Label>
+                    <Input
+                      id="venue"
+                      name="venue"
+                      value={formData.venue}
+                      onChange={handleInputChange}
+                      placeholder="Event venue"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="eventDate">Date *</Label>
+                    <Input
+                      id="eventDate"
+                      name="eventDate"
+                      type="date"
+                      value={formData.eventDate}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="eventTime">Time</Label>
+                    <Input
+                      id="eventTime"
+                      name="eventTime"
+                      type="time"
+                      value={formData.eventTime}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Description</Label>
+                  <textarea
+                    id="description"
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Event description"
+                    rows={4}
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                <Button type="submit" disabled={isCreatingEvent}>
+                  {isCreatingEvent ? 'Creating...' : 'Create Event'}
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* All Events */}
+          <Card>
+            <CardHeader>
+              <CardTitle>All Events</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                  Sync your club events to make them visible to all students on the campus calendar. This helps increase attendance and engagement.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="font-semibold">Events Ready to Sync</h3>
-                {events.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No events to sync. Create events first!</p>
-                ) : (
-                  events.map((event) => (
-                    <div key={event.id} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div>
-                        <p className="font-medium">{event.title}</p>
-                        <p className="text-sm text-muted-foreground">{event.date}</p>
+              {events.length > 0 ? (
+                events.map(event => (
+                  <div key={event._id} className="border rounded-lg p-4 space-y-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <h3 className="font-semibold">{event.title}</h3>
+                        <p className="text-sm text-muted-foreground">{event.description}</p>
                       </div>
-                      <Button size="sm" variant="outline">
-                        <TrendingUp className="h-4 w-4 mr-2" />
-                        Sync to Calendar
+                      <Badge variant="outline">{event.category}</Badge>
+                    </div>
+                    <div className="grid grid-cols-2 text-sm text-muted-foreground">
+                      <p>📅 {new Date(event.eventDate).toLocaleDateString()}</p>
+                      <p>📍 {event.venue}</p>
+                      <p>👥 {event.registeredUsers?.length || 0} registered</p>
+                      <p>🕐 {event.eventTime}</p>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteEvent(event._id)}
+                      >
+                        Delete
                       </Button>
                     </div>
-                  ))
-                )}
+                  </div>
+                ))
+              ) : (
+                <p className="text-muted-foreground">No events yet</p>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* PROFILE TAB */}
+        <TabsContent value="profile" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Club Profile Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Club Name</p>
+                  <p className="text-lg font-semibold mt-1">{clubData.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Domain</p>
+                  <p className="text-lg font-semibold mt-1">{clubData.domain}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Contact Email</p>
+                  <p className="text-sm mt-1">{clubData.contactEmail || 'Not provided'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">Contact Phone</p>
+                  <p className="text-sm mt-1">{clubData.contactPhone || 'Not provided'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">Description</p>
+                  <p className="text-sm mt-1">{clubData.description || 'No description'}</p>
+                </div>
+                <div className="md:col-span-2">
+                  <p className="text-sm font-medium text-muted-foreground">Achievements</p>
+                  <p className="text-sm mt-1">{clubData.achievements || 'No achievements'}</p>
+                </div>
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-3">Synced Events</h3>
-                <p className="text-sm text-muted-foreground">No synced events yet</p>
+              <div>
+                <p className="font-semibold mb-4">Members ({clubData.members?.length || 0})</p>
+                {clubData.members && clubData.members.length > 0 ? (
+                  <div className="space-y-2">
+                    {clubData.members.map(member => (
+                      <div key={member._id} className="p-3 border rounded-lg">
+                        <p className="font-medium">{member.name}</p>
+                        <p className="text-sm text-muted-foreground">{member.email}</p>
+                        <p className="text-xs text-muted-foreground">{member.regNo}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground">No members yet</p>
+                )}
               </div>
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-
-      {/* Logout Section */}
-      <div className="flex justify-center mt-8">
-        <Button 
-          variant="destructive" 
-          size="lg"
-          onClick={handleLogout}
-          className="gap-2"
-          disabled={loading}
-        >
-          <LogOut className="h-5 w-5" />
-          {loading ? 'Logging out...' : 'Logout'}
-        </Button>
-      </div>
     </div>
   )
 }

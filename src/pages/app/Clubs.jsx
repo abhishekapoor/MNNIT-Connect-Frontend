@@ -2,13 +2,15 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Users } from 'lucide-react'
 import api from '@/services/api'
 
 export default function Clubs() {
   const [clubsList, setClubsList] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [joining, setJoining] = useState(null)
+  const [joinedClubs, setJoinedClubs] = useState([])
   
   useEffect(() => {
     fetchClubs()
@@ -26,6 +28,40 @@ export default function Clubs() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleJoinClub = async (clubId) => {
+    try {
+      setJoining(clubId)
+      await api.post(`/club/${clubId}/join`)
+      setJoinedClubs([...joinedClubs, clubId])
+      alert('Successfully joined club!')
+      fetchClubs()
+    } catch (err) {
+      console.error('Error joining club:', err)
+      alert('Failed to join club: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setJoining(null)
+    }
+  }
+
+  const handleLeaveClub = async (clubId) => {
+    try {
+      setJoining(clubId)
+      await api.post(`/club/${clubId}/leave`)
+      setJoinedClubs(joinedClubs.filter(id => id !== clubId))
+      alert('Successfully left club!')
+      fetchClubs()
+    } catch (err) {
+      console.error('Error leaving club:', err)
+      alert('Failed to leave club: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setJoining(null)
+    }
+  }
+
+  const isClubMember = (clubId) => {
+    return joinedClubs.includes(clubId)
   }
 
   return (
@@ -51,7 +87,7 @@ export default function Clubs() {
           {clubsList.map((club) => (
             <Card 
               key={club._id} 
-              className="hover:shadow-lg transition-shadow cursor-pointer"
+              className="hover:shadow-lg transition-shadow"
             >
               <CardHeader>
                 <CardTitle>{club.name}</CardTitle>
@@ -59,23 +95,44 @@ export default function Clubs() {
                   <Badge variant="outline">{club.domain}</Badge>
                 </CardDescription>
                 {club.description && (
-                  <p className="text-sm text-muted-foreground mt-2">{club.description}</p>
+                  <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{club.description}</p>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-3">
                 <div className="space-y-2 text-sm">
                   {club.contactEmail && (
                     <p className="text-muted-foreground">
-                      <strong>Contact:</strong> {club.contactEmail}
+                      <strong>Email:</strong> {club.contactEmail}
                     </p>
                   )}
-                  {club.achievements && (
+                  {club.contactPhone && (
                     <p className="text-muted-foreground">
-                      <strong>Achievements:</strong> {club.achievements}
+                      <strong>Phone:</strong> {club.contactPhone}
                     </p>
                   )}
+                  <p className="flex items-center gap-1 text-muted-foreground">
+                    <Users className="w-4 h-4" />
+                    <strong>{club.members?.length || 0} members</strong>
+                  </p>
                 </div>
-                <Button className="w-full mt-4" variant="outline">Join Club</Button>
+                {isClubMember(club._id) ? (
+                  <Button 
+                    className="w-full" 
+                    variant="destructive"
+                    disabled={joining === club._id}
+                    onClick={() => handleLeaveClub(club._id)}
+                  >
+                    {joining === club._id ? 'Leaving...' : 'Leave Club'}
+                  </Button>
+                ) : (
+                  <Button 
+                    className="w-full"
+                    disabled={joining === club._id}
+                    onClick={() => handleJoinClub(club._id)}
+                  >
+                    {joining === club._id ? 'Joining...' : 'Join Club'}
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}

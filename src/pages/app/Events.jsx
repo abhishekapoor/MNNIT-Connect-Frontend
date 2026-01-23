@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { AlertCircle, Calendar, MapPin, Users } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import api from '@/services/api'
 
@@ -8,6 +9,8 @@ export default function Events() {
   const [events, setEvents] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [registering, setRegistering] = useState(null)
+  const [registeredEvents, setRegisteredEvents] = useState([])
 
   useEffect(() => {
     fetchEvents()
@@ -18,13 +21,59 @@ export default function Events() {
       setLoading(true)
       setError('')
       const response = await api.get('/event')
-      setEvents(response.data)
+      setEvents(response.data.events || response.data)
     } catch (err) {
       console.error('Error fetching events:', err)
       setError('Failed to load events')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleRegisterEvent = async (eventId) => {
+    try {
+      setRegistering(eventId)
+      await api.post(`/event/${eventId}/register`)
+      setRegisteredEvents([...registeredEvents, eventId])
+      alert('Successfully registered for event!')
+      fetchEvents()
+    } catch (err) {
+      console.error('Error registering:', err)
+      alert('Failed to register: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setRegistering(null)
+    }
+  }
+
+  const handleUnregisterEvent = async (eventId) => {
+    try {
+      setRegistering(eventId)
+      await api.post(`/event/${eventId}/unregister`)
+      setRegisteredEvents(registeredEvents.filter(id => id !== eventId))
+      alert('Successfully unregistered from event!')
+      fetchEvents()
+    } catch (err) {
+      console.error('Error unregistering:', err)
+      alert('Failed to unregister: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setRegistering(null)
+    }
+  }
+
+  const isRegistered = (eventId) => {
+    return registeredEvents.includes(eventId)
+  }
+
+  const getCategoryColor = (category) => {
+    const colors = {
+      WORKSHOP: 'bg-blue-100 text-blue-800',
+      FEST: 'bg-purple-100 text-purple-800',
+      CULTURAL: 'bg-pink-100 text-pink-800',
+      SPORTS: 'bg-green-100 text-green-800',
+      ACADEMIC: 'bg-yellow-100 text-yellow-800',
+      OTHER: 'bg-gray-100 text-gray-800'
+    }
+    return colors[category] || colors.OTHER
   }
 
   return (
@@ -50,32 +99,73 @@ export default function Events() {
           {events.map((event) => (
             <Card key={event._id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="space-y-2">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="space-y-2 flex-1">
                     <CardTitle>{event.title}</CardTitle>
                     <CardDescription>{event.description || 'No description'}</CardDescription>
                   </div>
-                  {event.category && <Badge>{event.category}</Badge>}
+                  <Badge className={getCategoryColor(event.category)}>
+                    {event.category}
+                  </Badge>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                  <div>
-                    <p className="text-muted-foreground">Date</p>
-                    <p className="font-medium">
-                      {new Date(event.eventDate).toLocaleDateString()}
-                    </p>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-start gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground mt-1" />
+                    <div>
+                      <p className="text-muted-foreground text-xs">Date & Time</p>
+                      <p className="font-medium">
+                        {new Date(event.eventDate).toLocaleDateString('en-US', {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {event.eventTime || '10:00 AM'}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-muted-foreground">Time</p>
-                    <p className="font-medium">
-                      {new Date(event.eventDate).toLocaleTimeString()}
-                    </p>
+                  <div className="flex items-start gap-2">
+                    <MapPin className="w-4 h-4 text-muted-foreground mt-1" />
+                    <div>
+                      <p className="text-muted-foreground text-xs">Location</p>
+                      <p className="font-medium">{event.venue}</p>
+                    </div>
                   </div>
-                  <div className="md:col-span-2">
-                    <p className="text-muted-foreground">Location</p>
-                    <p className="font-medium">{event.venue || 'TBA'}</p>
+                  <div className="flex items-start gap-2">
+                    <Users className="w-4 h-4 text-muted-foreground mt-1" />
+                    <div>
+                      <p className="text-muted-foreground text-xs">Registrations</p>
+                      <p className="font-medium">
+                        {event.registeredUsers?.length || 0} / {event.maxAttendees || 'Unlimited'}
+                      </p>
+                    </div>
                   </div>
+                </div>
+
+                <div className="flex gap-2">
+                  {isRegistered(event._id) ? (
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="flex-1"
+                      disabled={registering === event._id}
+                      onClick={() => handleUnregisterEvent(event._id)}
+                    >
+                      {registering === event._id ? 'Unregistering...' : 'Unregister'}
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      className="flex-1"
+                      disabled={registering === event._id}
+                      onClick={() => handleRegisterEvent(event._id)}
+                    >
+                      {registering === event._id ? 'Registering...' : 'Register'}
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>
