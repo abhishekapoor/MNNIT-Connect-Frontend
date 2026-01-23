@@ -17,7 +17,7 @@ export default defineConfig({
     middlewareMode: false,
     port: 3001,
     open: true,
-    host: '127.0.0.1',
-    strictPort: true,
+    host: 'localhost',
+    strictPort: true
   },
 })
