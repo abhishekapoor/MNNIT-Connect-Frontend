@@ -67,19 +67,20 @@ export default function SignupPage() {
     try{
       // Map form field names to API field names
       const signupData = {
-        name: formData.fullName,
-        email: formData.email,
-        regNo: formData.registrationNumber,
-        course: formData.course,
-        branch: formData.branch,
+        name: formData.fullName.trim(),
+        email: formData.email.trim().toLowerCase(),
+        regNo: formData.registrationNumber.trim(),
+        course: formData.course.trim(),
+        branch: formData.branch.trim(),
         password: formData.password,
         role: formData.role
       };
       
+      console.log("Sending signup data:", signupData);
       const res = await api.post("/auth/signup", signupData);
 
-      console.log(res);
-      alert("Registered Successfully!");
+      console.log("Signup response:", res.data);
+      alert("✅ Registered Successfully!");
       setSuccess(true);
       setFormData({
         fullName: '',
@@ -97,10 +98,9 @@ export default function SignupPage() {
         navigate('/login');
       }, 2000);
     }catch(error){
-      console.error("Signup Failed:", 
-          error.response?.data || error.message
-        );
-      setError(error.response?.data?.message || "Failed to register. Please try again.");
+      console.error("Signup Failed:", error.response?.data || error.message);
+      const errorMsg = error.response?.data?.message || error.message || "Failed to register. Please try again.";
+      setError(errorMsg);
     }finally{
       setLoading(false);
     }

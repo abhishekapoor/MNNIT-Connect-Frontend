@@ -23,7 +23,7 @@ export default function Dashboard() {
       
       // Fetch events
       const eventsRes = await api.get('/event')
-      const allEvents = eventsRes.data
+      const allEvents = eventsRes.data.events || eventsRes.data || []
       
       // Filter upcoming events
       const now = new Date()
@@ -32,7 +32,8 @@ export default function Dashboard() {
       
       // Fetch clubs
       const clubsRes = await api.get('/club')
-      setClubs(clubsRes.data.clubs || [])
+      const clubsData = clubsRes.data.clubs || clubsRes.data || []
+      setClubs(clubsData)
     } catch (err) {
       console.error('Error fetching dashboard data:', err)
       setError('Failed to load dashboard data')

@@ -3,7 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { AlertCircle, Loader } from 'lucide-react'
+import { AlertCircle, Loader, Upload } from 'lucide-react'
 import api from '@/services/api'
 
 export default function LostAndFound() {
@@ -15,8 +15,10 @@ export default function LostAndFound() {
     item: '',
     description: '',
     location: '',
-    contact: ''
+    contact: '',
+    imageUrl: null
   })
+  const [imagePreview, setImagePreview] = useState(null)
 
   useEffect(() => {
     fetchItems()
@@ -42,21 +44,40 @@ export default function LostAndFound() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setImagePreview(reader.result)
+        setFormData(prev => ({ ...prev, imageUrl: reader.result }))
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     try {
       setLoading(true)
       setError('')
       
-      await api.post('/lostfound', {
+      const submitData = {
         ...formData,
         status: 'LOST'
-      })
+      }
 
-      alert('Item posted successfully!')
-      setFormData({ item: '', description: '', location: '', contact: '' })
-      setTab('found')
-      fetchItems()
+      const res = await api.post('/lostfound', submitData)
+      
+      if (res.data.success) {
+        alert('✅ Item posted successfully!')
+        setFormData({ item: '', description: '', location: '', contact: '', imageUrl: null })
+        setImagePreview(null)
+        setTab('found')
+        fetchItems()
+      } else {
+        setError('Failed to post item: ' + (res.data.message || 'Unknown error'))
+      }
     } catch (err) {
       console.error('Error posting item:', err)
       setError('Failed to post item: ' + (err.response?.data?.message || err.message))
@@ -104,9 +125,14 @@ export default function LostAndFound() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {items.map((item) => (
                 <Card key={item._id} className="hover:shadow-lg transition-shadow">
+                  {item.imageUrl && (
+                    <div className="w-full h-48 overflow-hidden bg-gray-100">
+                      <img src={item.imageUrl} alt={item.item} className="w-full h-full object-cover" />
+                    </div>
+                  )}
                   <CardHeader>
                     <CardTitle className="capitalize">{item.item}</CardTitle>
-                    <CardDescription>{item.description}</CardDescription>
+                    <CardDescription>{item.description || 'No description'}</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="text-sm space-y-2">
@@ -187,6 +213,33 @@ export default function LostAndFound() {
                   required
                 />
               </div>
+              
+              <div className="space-y-2">
+                <Label>Upload Photo (Optional)</Label>
+                <div className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer hover:bg-gray-50">
+                  <input 
+                    type="file" 
+                    id="image"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                  <label htmlFor="image" className="cursor-pointer block">
+                    {imagePreview ? (
+                      <div className="space-y-2">
+                        <img src={imagePreview} alt="Preview" className="w-32 h-32 object-cover mx-auto rounded" />
+                        <p className="text-sm text-primary">Click to change</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Upload className="w-8 h-8 mx-auto text-gray-400" />
+                        <p className="text-sm font-medium">Click to upload photo</p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? 'Posting...' : 'Report Item'}
               </Button>
