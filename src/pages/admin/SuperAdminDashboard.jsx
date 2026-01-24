@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect, useContext } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -10,31 +10,78 @@ import {
   BarChart3, Users, Calendar, FileText, Shield, Plus, Edit2, Trash2, 
   CheckCircle, XCircle, AlertCircle, Download, Upload, Mail, Phone, LogOut
 } from 'lucide-react'
+import { AuthContext } from '@/context/AuthContext'
+import api from '@/services/api'
 
 export default function SuperAdminDashboard() {
   const navigate = useNavigate()
+  const { user: loggedInUser } = useContext(AuthContext)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  // Super Admin Profile
+  // Super Admin Profile - Initialize with logged-in user data
   const [adminProfile, setAdminProfile] = useState({
-    name: 'Dr. Vikram Sharma',
-    email: 'vikram.sharma@mnnit.ac.in',
-    phone: '+91-9876543221',
+    name: loggedInUser?.name || 'Admin',
+    email: loggedInUser?.email || '',
+    phone: loggedInUser?.phoneNumber || '+91-XXXXXXXXXX',
     position: 'Platform Administrator',
-    department: 'Computer Science & Engineering',
+    department: `${loggedInUser?.course || 'B.Tech'} - ${loggedInUser?.branch || 'CSE'}`,
     joinedDate: 'January 2020',
-    image: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram',
+    profileImage: loggedInUser?.profileImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin',
     accessLevel: 'Super Admin'
   })
 
   const [editForm, setEditForm] = useState(adminProfile)
 
-  const [stats, setStats] = useState({
-    totalEvents: 156,
-    totalClubs: 24,
-    totalUsers: 2450,
-    pendingApprovals: 12,
-  })
+  useEffect(() => {
+    if (loggedInUser) {
+      setAdminProfile(prev => ({
+        ...prev,
+        name: loggedInUser.name,
+        email: loggedInUser.email,
+        phone: loggedInUser.phoneNumber || '+91-XXXXXXXXXX',
+        department: `${loggedInUser.course || 'B.Tech'} - ${loggedInUser.branch || 'CSE'}`,
+        profileImage: loggedInUser.profileImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
+      }))
+      setEditForm(prev => ({
+        ...prev,
+        name: loggedInUser.name,
+        email: loggedInUser.email,
+        phone: loggedInUser.phoneNumber || '+91-XXXXXXXXXX',
+        department: `${loggedInUser.course || 'B.Tech'} - ${loggedInUser.branch || 'CSE'}`,
+        profileImage: loggedInUser.profileImage || 'https://api.dicebear.com/7.x/avataaars/svg?seed=Admin'
+      }))
+    }
+    fetchDashboardData()
+  }, [loggedInUser])
+
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true)
+      const [eventsRes, clubsRes] = await Promise.all([
+        api.get('/event'),
+        api.get('/club')
+      ])
+      
+      if (eventsRes.data.events) {
+        setStats(prev => ({
+          ...prev,
+          totalEvents: eventsRes.data.events.length
+        }))
+      }
+      
+      if (clubsRes.data.clubs) {
+        setStats(prev => ({
+          ...prev,
+          totalClubs: clubsRes.data.clubs.length
+        }))
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const [pendingEvents, setPendingEvents] = useState([
     { id: 1, title: 'Cultural Fest 2024', organizer: 'Cultural Club', status: 'Pending', date: '2024-03-15' },
@@ -88,7 +135,7 @@ export default function SuperAdminDashboard() {
         <Card className="md:col-span-1">
           <CardHeader className="text-center">
             <img 
-              src={adminProfile.image} 
+              src={adminProfile.profileImage} 
               alt={adminProfile.name}
               className="w-24 h-24 rounded-full mx-auto mb-4 border-4 border-primary"
             />
