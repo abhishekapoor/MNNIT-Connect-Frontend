@@ -117,10 +117,35 @@ export default function SuperAdminDashboard() {
     alert('Event rejected!')
   }
 
-  const handleSaveProfile = () => {
-    setAdminProfile(editForm)
-    setIsEditingProfile(false)
-    alert('Profile updated successfully!')
+  const handleSaveProfile = async () => {
+    try {
+      setLoading(true)
+      
+      console.log('Saving profile with data:', editForm)
+      
+      // Call backend API to update user profile
+      const res = await api.put('/auth/profile', {
+        name: editForm.name,
+        phone: editForm.phone,
+        bio: editForm.department
+      })
+
+      console.log('Profile update response:', res)
+
+      if (res.data.success || res.status === 200) {
+        setAdminProfile(editForm)
+        setIsEditingProfile(false)
+        alert('✅ Profile updated successfully and saved to database!')
+      } else {
+        alert('Failed to save profile: ' + (res.data.message || 'Unknown error'))
+      }
+    } catch (err) {
+      console.error('Error updating profile:', err)
+      console.error('Error response:', err.response?.data)
+      alert('❌ Error saving profile: ' + (err.response?.data?.message || err.message))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleLogout = () => {
